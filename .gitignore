@@ -30,3 +30,6 @@
 *.exe
 *.out
 *.app
+
+# Game Executable 
+dss-game
