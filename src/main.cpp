@@ -35,6 +35,32 @@ public:
   }
 };
 
+class TextureManager {
+private:
+  std::map<std::string, sf::Texture> textures;
+  sf::Texture placeholderTexture; // Placeholder for failed loads
+
+public:
+  TextureManager() {
+    // Load a simple placeholder texture
+    placeholderTexture.create(100, 100); // Creates a small blank texture
+  }
+
+  sf::Texture &getTexture(const std::string &filename) {
+    auto it = textures.find(filename);
+    if (it == textures.end()) {
+      sf::Texture tex;
+      if (!tex.loadFromFile(filename)) {
+        std::cerr << "Failed to load texture: " + filename << std::endl;
+        return placeholderTexture;
+      }
+      auto inserted = textures.insert(std::make_pair(filename, std::move(tex)));
+      it = inserted.first;
+    }
+    return it->second;
+  }
+};
+
 // Vectors storing recurring items:
 std::vector<Projectile> projectiles;
 std::vector<Enemy> enemies;
@@ -51,17 +77,6 @@ void shootFrom(const sf::Sprite &sprite) {
 
   newProjectile.shape.setPosition(startPosition);
   projectiles.push_back(newProjectile);
-}
-
-// stupid function that doesn't work
-// * it works now, but still stupid
-// TODO: make some sort of sprite manager
-sf::Sprite makeSprite(const std::string &file) {
-  static sf::Texture texture;
-  texture.loadFromFile(file);
-  sf::Sprite sprite(texture);
-
-  return sprite;
 }
 
 // This function is used to update window ratio is its
@@ -85,6 +100,19 @@ void updateView(const sf::RenderWindow &window, sf::View &view) {
   view.setViewport(sf::FloatRect(posX, posY, sizeX, sizeY));
 }
 
+bool initializeGame(sf::RenderWindow &window, TextureManager &textureManager,
+                    sf::Sprite &background) {
+  try {
+    background.setTexture(
+        textureManager.getTexture("assets/sprites/spacebg.png"));
+    background.setPosition(0, 0);
+  } catch (const std::runtime_error &e) {
+    std::cerr << e.what() << std::endl;
+    return false;
+  }
+  return true;
+}
+
 int main() {
   // Window initializations
   sf::RenderWindow window(sf::VideoMode(1024, 1024), "Denast Space Shooter");
@@ -99,20 +127,19 @@ int main() {
   // Used to set frame limit
   // window.setFramerateLimit(60);
 
-  sf::Texture background_tex;
-  if (!background_tex.loadFromFile("assets/sprites/spacebg.png")) {
+  TextureManager textureman;
+  sf::Sprite background;
+
+  if (!initializeGame(window, textureman, background)) {
+    return -1; // Exit if initialization fails
+  }
+
+  sf::Texture player_texture;
+  if (!player_texture.loadFromFile("assets/sprites/player_c.png")) {
     return -1;
   }
-  sf::Sprite background_spr(background_tex);
-  background_spr.setPosition(0, 0);
 
-  // sf::Texture player_texture;
-  // if (!player_texture.loadFromFile("assets/sprites/player_c.png")) {
-  //   return -1;
-  // }
-
-  // sf::Sprite player_sprite(player_texture);
-  sf::Sprite player_sprite = makeSprite("assets/sprites/player_c.png");
+  sf::Sprite player_sprite(player_texture);
 
   // Set initial position of the sprite at the center of the window
   player_sprite.setPosition(window.getSize().x / 2.0f,
@@ -204,7 +231,7 @@ int main() {
     }
 
     window.clear(sf::Color::Black);
-    window.draw(background_spr);
+    window.draw(background);
     window.draw(player_sprite);
     if (!won) {
       window.draw(enemy_sprite);
