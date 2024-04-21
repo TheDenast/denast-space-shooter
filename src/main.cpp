@@ -1,5 +1,23 @@
 #include <SFML/Graphics.hpp>
+#include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Texture.hpp>
+#include <cstdlib>
+#include <iostream>
+#include <vector>
+
+class Player {
+public:
+  int health;
+  Player() : health(100) {}
+};
+
+class Enemy {
+public:
+  int health;
+  int posx;
+  int posy;
+  Enemy() : health(100), posx(0), posy(0) {}
+};
 
 class Projectile {
 public:
@@ -17,10 +35,12 @@ public:
   }
 };
 
-std::vector<Projectile> projectiles; // vector storing all projectiles
+// Vectors storing recurring items:
+std::vector<Projectile> projectiles;
+std::vector<Enemy> enemies;
 
 void shootFrom(const sf::Sprite &sprite) {
-  Projectile newProjectile;
+  Projectile newProjectile; // create new entry in Projectile vector
   sf::Vector2f startPosition = sprite.getPosition();
 
   // Adjust start position to sprite's center
@@ -33,21 +53,51 @@ void shootFrom(const sf::Sprite &sprite) {
   projectiles.push_back(newProjectile);
 }
 
+// stupid function that doesn't work
+// * it works now, but still stupid
+// TODO: make some sort of sprite manager
+sf::Sprite makeSprite(const std::string &file) {
+  static sf::Texture texture;
+  texture.loadFromFile(file);
+  sf::Sprite sprite(texture);
+
+  return sprite;
+}
+
+// This function is used to update window ratio is its
+// size is altered by the user
+void updateView(const sf::RenderWindow &window, sf::View &view) {
+  float windowRatio = float(window.getSize().x) / float(window.getSize().y);
+  float viewRatio = float(view.getSize().x) / float(view.getSize().y);
+  float sizeX = 1;
+  float sizeY = 1;
+  float posX = 0;
+  float posY = 0;
+
+  if (windowRatio < viewRatio) {
+    sizeX = windowRatio / viewRatio;
+    posX = (1 - sizeX) / 2.f;
+  } else {
+    sizeY = viewRatio / windowRatio;
+    posY = (1 - sizeY) / 2.f;
+  }
+
+  view.setViewport(sf::FloatRect(posX, posY, sizeX, sizeY));
+}
+
 int main() {
-  sf::RenderWindow window(sf::VideoMode(1024, 1024), "SFML");
-  // Get the desktop resolution
+  // Window initializations
+  sf::RenderWindow window(sf::VideoMode(1024, 1024), "Denast Space Shooter");
+  sf::View view(sf::FloatRect(0.f, 0.f, 1024.f, 1024.f)); // Original view
+  window.setView(view);
+
+  // Center the window on the screen
   sf::VideoMode desktop = sf::VideoMode::getDesktopMode();
+  window.setPosition(sf::Vector2i((desktop.width - window.getSize().x) / 2,
+                                  (desktop.height - window.getSize().y) / 2));
 
-  // Calculate the position
-  int windowWidth = window.getSize().x;
-  int windowHeight = window.getSize().y;
-  int posX = (desktop.width - windowWidth) / 2;
-  int posY = (desktop.height - windowHeight) / 2;
-
-  // Set the window's position to center it
-  window.setPosition(sf::Vector2i(posX, posY));
-
-  // window.setFramerateLimit(60); // Not sure if I need it yet
+  // Used to set frame limit
+  // window.setFramerateLimit(60);
 
   sf::Texture background_tex;
   if (!background_tex.loadFromFile("assets/sprites/spacebg.png")) {
@@ -56,12 +106,13 @@ int main() {
   sf::Sprite background_spr(background_tex);
   background_spr.setPosition(0, 0);
 
-  sf::Texture player_texture;
-  if (!player_texture.loadFromFile("assets/sprites/player_c.png")) {
-    return -1;
-  }
+  // sf::Texture player_texture;
+  // if (!player_texture.loadFromFile("assets/sprites/player_c.png")) {
+  //   return -1;
+  // }
 
-  sf::Sprite player_sprite(player_texture);
+  // sf::Sprite player_sprite(player_texture);
+  sf::Sprite player_sprite = makeSprite("assets/sprites/player_c.png");
 
   // Set initial position of the sprite at the center of the window
   player_sprite.setPosition(window.getSize().x / 2.0f,
@@ -105,6 +156,12 @@ int main() {
     while (window.pollEvent(event)) {
       if (event.type == sf::Event::Closed) {
         window.close();
+      }
+      // Resize window: adjust the view
+      if (event.type == sf::Event::Resized) {
+        view.setSize(event.size.width, event.size.height);
+        updateView(window, view);
+        window.setView(view);
       }
     }
 
