@@ -1,35 +1,12 @@
-# Prerequisites
-*.d
+.direnv/
+result/
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+/target
+**/*.rs.bk
+Cargo.lock
 
-# Precompiled Headers
-*.gch
-*.pch
+# Added by cargo
+#
+# already existing elements were commented out
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
-
-# Game Executable 
-dss-game
+#/target
